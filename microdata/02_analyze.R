@@ -19,7 +19,32 @@ vars
 # tag data set with correct attributes
 
 md %>% 
-  count(YBL, wt = PWGTP)
+  count(RAC2P, HISP, wt = PWGTP) %>% 
+  arrange(-n) %>% 
+  left_join(
+    vars %>% 
+      filter(var_code == 'HISP') %>% 
+      select(HISP = val_max, HISP_label = val_label)
+  ) %>% 
+  left_join(
+    vars %>% 
+      filter(var_code == 'RAC2P') %>% 
+      select(RAC2P = val_max, RAC2P_label = val_label)
+  ) %>% 
+  mutate(
+    RAC2P = case_when(
+      HISP != '01' ~ '',
+      TRUE ~ RAC2P
+    ),
+    RAC2P_label = case_when(
+      HISP != '01' ~ '',
+      TRUE ~ RAC2P_label
+    )
+  ) %>% 
+  group_by(RAC2P, HISP, RAC2P_label, HISP_label) %>% 
+  summarise(n = sum(n), .groups = 'drop') %>% 
+  arrange(-n) %>% 
+  view()
   # distinct(SERIALNO, .keep_all = TRUE) %>% 
   # count(RAC1P, hisp = if_else(HISP == '01', 'nothispanic', 'hispanic'), wt = PWGTP) %>% 
   
@@ -96,6 +121,21 @@ coded = md %>%
       YBL == '07' ~ '1990s',
       YBL %in% c('08','09','10','11','12','13') ~ '2000s',
       YBL %in% c('14','15','16','17','18','19','20','21','22','23') ~ '2010s',
+    ),
+    race.detailed = case_when(
+      HISP == '02' ~ 'mexican',
+      HISP == '11' ~ 'salvadoran',
+      HISP == '07' ~ 'guatemalan',
+      HISP == '03' ~ 'puerto-rican',
+      RAC2P == '01' & HISP == '01' ~ 'white',
+      RAC2P == '02' & HISP == '01' ~ 'black',
+      RAC2P == '43' & HISP == '01' ~ 'chinese',
+      RAC2P == '45' & HISP == '01' ~ 'filipino',
+      RAC2P == '38' & HISP == '01' ~ 'asian-indian',
+      RAC2P == '57' & HISP == '01' ~ 'vietnamese',
+      RAC2P == '49' & HISP == '01' ~ 'korean',
+      RAC2P == '48' & HISP == '01' ~ 'japanese',
+      TRUE ~ 'all-others',
     )
   )
 
@@ -108,7 +148,8 @@ coded
 
 survey.obj = coded %>% 
   distinct(SERIALNO, .keep_all = TRUE) %>%
-  filter(str_starts(PUMA, '059')) %>% # one county only
+  # filter(str_starts(PUMA, '059')) %>% # oc only
+  filter(str_starts(PUMA, '037')) %>% # la only
   to_survey(type = 'housing')
 
 survey.obj
@@ -188,3 +229,14 @@ survey.obj %>%
     pct = n / sum(n) * 100
   ) %>% 
   filter(crowded == 'crowded')
+
+survey.obj %>% 
+  survey_count(race.detailed, crowded) %>%
+  group_by(race.detailed) %>% 
+  mutate(
+    se.pct = n_se / n * 100,
+    pct = n / sum(n) * 100
+  ) %>% 
+  filter(crowded == 'crowded') %>% 
+  arrange(-n)
+
