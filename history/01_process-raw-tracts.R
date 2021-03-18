@@ -8,10 +8,10 @@ t60raw = read_csv('data/nhgis-raw/tables/nhgis0016_csv/nhgis0016_ds92_1960_tract
 t60raw
 
 # states missing
-fips_codes %>% 
-  as_tibble() %>% 
-  distinct(state, state_code, state_name) %>% 
-  left_join(t60raw %>% count(STATEA), by = c('state_code' = 'STATEA')) %>% 
+fips_codes %>%
+  as_tibble() %>%
+  distinct(state, state_code, state_name) %>%
+  left_join(t60raw %>% count(STATEA), by = c('state_code' = 'STATEA')) %>%
   filter(is.na(n))
 
 t60clean = t60raw %>%
@@ -25,8 +25,8 @@ t60clean = t60raw %>%
 
 t60clean
 
-t60clean %>% 
-  count(county = str_sub(GISJOIN, end = 8)) %>% 
+t60clean %>%
+  count(county = str_sub(GISJOIN, end = 8)) %>%
   filter(county %in% c('G0600370', 'G0600590'))
 
 # 1970 --------------------------------------------------------------------
@@ -53,8 +53,16 @@ t70clean = t70raw %>%
 
 t70clean
 
+t70clean %>% summarise(sum(total, na.rm = TRUE))
+
 t70clean %>% 
-  count(county = str_sub(GISJOIN, end = 8)) %>% 
+  mutate(county = str_sub(GISJOIN, end = 8)) %>% 
+  group_by(year, county) %>% 
+  summarise(
+    n = n(),
+    null = sum(is.na(total)),
+    total = sum(total, na.rm = TRUE)
+  ) %>% 
   filter(county %in% c('G0600370', 'G0600590'))
 
 # 1980 --------------------------------------------------------------------
@@ -74,8 +82,16 @@ t80clean = t80raw %>%
 
 t80clean
 
+t80clean %>% summarise(sum(total, na.rm = TRUE))
+
 t80clean %>% 
-  count(county = str_sub(GISJOIN, end = 8)) %>% 
+  mutate(county = str_sub(GISJOIN, end = 8)) %>% 
+  group_by(year, county) %>% 
+  summarise(
+    n = n(),
+    null = sum(is.na(total)),
+    total = sum(total, na.rm = TRUE)
+  ) %>% 
   filter(county %in% c('G0600370', 'G0600590'))
 
 # 1990 --------------------------------------------------------------------
@@ -95,9 +111,18 @@ t90clean = t90raw %>%
 
 t90clean
 
+t90clean %>% summarise(sum(total, na.rm = TRUE))
+
 t90clean %>% 
-  count(county = str_sub(GISJOIN, end = 8)) %>% 
+  mutate(county = str_sub(GISJOIN, end = 8)) %>% 
+  group_by(year, county) %>% 
+  summarise(
+    n = n(),
+    null = sum(is.na(total)),
+    total = sum(total, na.rm = TRUE)
+  ) %>% 
   filter(county %in% c('G0600370', 'G0600590'))
+
 
 # 2000 --------------------------------------------------------------------
 
@@ -116,9 +141,18 @@ t00clean = t00raw %>%
 
 t00clean
 
+t00clean %>% summarise(sum(total, na.rm = TRUE))
+
 t00clean %>% 
-  count(county = str_sub(GISJOIN, end = 8)) %>% 
+  mutate(county = str_sub(GISJOIN, end = 8)) %>% 
+  group_by(year, county) %>% 
+  summarise(
+    n = n(),
+    null = sum(is.na(total)),
+    total = sum(total, na.rm = TRUE)
+  ) %>% 
   filter(county %in% c('G0600370', 'G0600590'))
+
 
 # 2000 / 2019 -------------------------------------------------------------
 
@@ -178,8 +212,16 @@ t1019clean = api.get %>%
 
 t1019clean
 
+t1019clean %>% group_by(year) %>% summarise(sum(total, na.rm = TRUE))
+
 t1019clean %>% 
-  count(year, county = str_sub(GISJOIN, end = 8)) %>% 
+  mutate(county = str_sub(GISJOIN, end = 8)) %>% 
+  group_by(year, county) %>% 
+  summarise(
+    n = n(),
+    null = sum(is.na(total)),
+    total = sum(total, na.rm = TRUE)
+  ) %>% 
   filter(county %in% c('G0600370', 'G0600590'))
 
 # combine -----------------------------------------------------------------

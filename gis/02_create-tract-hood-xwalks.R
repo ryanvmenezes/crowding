@@ -20,16 +20,28 @@ tracts = map(
 tracts
 
 intersected = st_intersection(
-  st_buffer(tracts, 0),
-  st_buffer(mapla %>% mutate(mapla.area = as.double(st_area(.))), 0),
+  st_buffer(tracts %>% mutate(total.tract.area = as.double(st_area(.))), 0),
+  st_buffer(mapla, 0),
 ) %>% 
   mutate(
     piece.area = as.double(st_area(.)),
-    pct.mapla = piece.area / mapla.area
+    pct.tract = piece.area / total.tract.area
   ) %>% 
   st_set_geometry(NULL) %>% 
   as_tibble()
 
 intersected
+ 
+# intersected %>% 
+#   filter(GISJOIN == 'G06003701011', year == 1970)
+#   ggplot() +
+#   geom_sf()
+# 
+# intersected
+# 
+# intersected %>% 
+#   group_by(year, GISJOIN) %>% 
+#   summarise(total.pct = sum(pct.mapla)) %>% 
+#   arrange(total.pct)
 
 intersected %>% write_csv('data/processed/tract-mapla-xwalk.csv')
