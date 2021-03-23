@@ -1,19 +1,68 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Crowding in L.A. County (2019)"
+output: html_document
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
-```{r}
-plot(cars)
+```{r include=FALSE}
+library(tidyverse)
+library(leaflet)
+library(sf)
+library(glue)
+library(DT)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+```{r include=FALSE}
+shp = read_sf('data/processed/la-oc-tracts-2019.geojson')
+# shp
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+data = read_csv('data/processed/crowding-tracts-history.csv')
+# data
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+xwalk = read_csv('data/processed/tract-mapla-xwalk.csv')
+# xwalk
 
+joined = shp %>% 
+  filter(str_detect(GISJOIN, 'G060037')) %>% 
+  left_join(
+    data %>% 
+      filter(year == 2019) %>% 
+      filter(str_detect(GISJOIN, 'G060037')) %>%
+      left_join(
+        xwalk %>%
+          filter(year == 2019) %>%
+          group_by(GISJOIN) %>%
+          filter(pct.tract == max(pct.tract)) %>% 
+          ungroup() %>% 
+          select(GISJOIN, hood.name, pct.tract)
+      ) %>% 
+      mutate(
+        pct = crowded / total,
+        popup = glue('tract id: {str_sub(GISJOIN, start = 9)}<br />
+                     hood: {hood.name} ({round(pct.tract * 100, 1)}%)<br />
+                     crowding rate: {round(pct * 100, 1)}%<br />
+                     total: {total}<br />
+                     crowded: {crowded}'),
+      )
+  ) %>% 
+  st_transform(4269)
+
+# joined
+```
+
+
+```{r echo=FALSE, fig.height=7, fig.width=9, message=FALSE, warning=FALSE}
+pal <- colorNumeric("Reds", domain = joined$pct)
+
+leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  setView(-118.29255128780585, 34.044260030549715, zoom = 13) %>% 
+  addPolygons(
+    data = joined,
+    fillColor = ~pal(joined$pct),
+    fillOpacity = 0.50,
+    color = '#ddd',
+    weight = 1,
+    popup = joined$popup,
+    highlightOptions = highlightOptions(color = "black", weight = 2, bringToFront = TRUE)
+  )
+```
