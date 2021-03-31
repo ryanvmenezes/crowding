@@ -6,6 +6,7 @@ data = get_pums(
   variables = c(
     'PUMA', # public use microdata area (first three digits county)
     'RMSP', # rooms
+    'BDSP', # bedrooms
     'NP', # people
     'AGEP', # age of householder
     'TEN', # tenure (owner/renter)
